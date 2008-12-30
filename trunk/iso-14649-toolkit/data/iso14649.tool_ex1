@@ -1,0 +1,5 @@
+POCKET	FMS              TLO    DIAM  HOLDER TOOL DESCRIPTION
+
+3    'MILL 18MM'	 50.0	18.0     0   18 mm endmill
+4    SPIRAL_DRILL_20MM   70.0   20.0     0   20 mm twist drill
+6    "REAMER_22MM"       50.0   22.0     0   22 mm ream
