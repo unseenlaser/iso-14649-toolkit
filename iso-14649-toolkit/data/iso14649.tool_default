@@ -1,0 +1,18 @@
+POCKET	FMS              TLO    DIAM  HOLDER TOOL DESCRIPTION
+
+1    1	                 50.8	25.4     0	
+2    2                   25.4    5.08    0
+5    END-MILL-0.25-2W-3  38.1    6.35    0   0.25" end mill
+6    DRILL-0.5-2-3       50.0   12.7     0   0.5" drill
+7    CENTER_DRILL-5-3    35.0    5.0     0   5 mm center drill
+8    COUNTERSINK-6       41.0   18.0     0   45 degree countersink
+10   10                  2.4    -0.03    0   for tool radius comp testing
+11   END-MILL-0.5-2-3    78.0   12.7
+12   END-MILL-0.25-2-3   71.0    6.35
+13   END-MILL-0.125-2-3  50.0    3.175
+14   DRILL-0.25-2-3      88.9    6.35
+20   20	                 173.740 0	 0   1" carbide end mill (0.060 radius)
+21   21	                 247.615 0       0   1/2" spot drill short
+32   32	                 296.515 0       0   8.5mm drill
+41   41                  228.360 0       0   10mm x 1.25 tap
+60   60                  0       0       0   large chuck
