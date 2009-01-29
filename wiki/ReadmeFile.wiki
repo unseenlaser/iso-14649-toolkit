@@ -15,7 +15,7 @@ The toolkit contains four principal items (plus utilities).
   # A simple stand-alone parser/printer.
   # An ISO 14649 interpreter for 3-axis machining.
 
-No license is required to use the software. The software is all in standard C++, so it may be compiled and run on any computer for which a standard C++ compiler is available.
+The software is all in standard C++, so it may be compiled and run on any computer for which a standard C++ compiler is available.
 
 
 == C++ CLASSES ==
