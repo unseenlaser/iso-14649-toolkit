@@ -392,7 +392,7 @@ static int find_drill_tip_length
 static int find_cutting_depths(double * depth, double * depth1,
   double * depth2, double flute_length, double tip_length,
   elementarySurface * depth_plane, real * overcut,
-  real * cutting_depth, drillingTypeStrategy * the_strategy);
+  real * cutting_depth, drillingTypeStrategy * strat);
 static int find_if_vertical(direction * axis, int * vertical);
 static void find_instances(iso14649ClassEName instanceType,
   std::list<instance *> * fillMe, std::list<instance *> * source);
@@ -769,8 +769,8 @@ static int check_and_store()  /* NO ARGUMENTS */
       PROJECT_WORKPIECE_MUST_BE_FILE_WORKPIECE);
   CHK((the_project->get_mainWorkplan() == 0),
       MAIN_WORKPLAN_MUST_NOT_BE_NULL);
-  CHK((the_project->get_mainWorkplan()->get_itsSetup()->get_id()->get_val() !=
-       the_setup->get_id()->get_val()),
+  CHK((the_project->get_mainWorkplan()->get_itsSetup()->get_iId()->get_val() !=
+       the_setup->get_iId()->get_val()),
       PROJECT_MAIN_WORKPLAN_SETUP_MUST_BE_FILE_SETUP);
   projectWorkpieceSetups = the_setup->get_itsWorkpieceSetup()->get_theList();
   CHK((projectWorkpieceSetups->size() != 1),
@@ -2269,7 +2269,7 @@ static int check_plane_milling_strategies(  /* ARGUMENTS                    */
 				 new direction("FIRST_CUT",
 					  new parenRealListFull(components)),
 				 new leftOrRightRight,
-				 new straightline);
+				 new strokeConnectionStrategyStraightline);
       the_cut->set_itsMachiningStrategy(*inside_strategy);
     }
   else if (the_cut->get_itsMachiningStrategy()->isA(unidirectionalMilling_E))
@@ -2303,7 +2303,7 @@ static int check_plane_milling_strategies(  /* ARGUMENTS                    */
       bi = dynamic_cast<bidirectionalMilling *>
 	(the_cut->get_itsMachiningStrategy());
       con = bi->get_itsStrokeConnectionStrategy();
-      CHK((con && (NOT(con->isA(straightline_E)))),
+      CHK((con && (NOT(con->isA(strokeConnectionStrategyStraightline_E)))),
 	  CANNOT_HANDLE_NON_STRAIGHTLINE_CONNECTION_STRATEGY);
       if (bi->get_overlap())
 	{
@@ -3391,6 +3391,7 @@ static int check_tools(                 /* ARGUMENTS                        */
   cuttingTool * a_tool;
   millingToolBody * mill_body;
   std::list<executable *>::iterator iter;
+  cuttingComponent * comp;
 
   for (iter = executables->begin(); iter != executables->end(); ++iter)
     {
@@ -3420,8 +3421,8 @@ static int check_tools(                 /* ARGUMENTS                        */
 		  CHK((a_tool->get_itsCuttingEdge()->get_theList()->size()
 		       != 1),
 		      TOOL_FOR_MACHINING_MUST_HAVE_EXACTLY_ONE_COMPONENT);
-		  a_tool->get_itsCuttingEdge()->get_theList()->front()->
-		    set_toolOffsetLength(_world.tool_table[index].length);
+		  comp = a_tool->get_itsCuttingEdge()->get_theList()->front();
+		  comp->set_toolOffsetLength(_world.tool_table[index].length);
 		  break;
 		}
 	    }
@@ -4124,10 +4125,10 @@ static int execute_machining(          /* ARGUMENTS                       */
 Returned Value: int
    If any of the following errors occur, this returns the error code shown.
    Otherwise, it returns ISO14649_OK.
-   1. The ncFunction is a set_mark: CANNOT_HANDLE_SET_MARK.
-   2. The ncFunction is a wait_for_mark: CANNOT_HANDLE_WAIT_FOR_MARK.
-   3. The ncFunction is an index_pallet: CANNOT_HANDLE_INDEX_PALLET.
-   4. The ncFunction is an index_table: CANNOT_HANDLE_INDEX_TABLE.
+   1. The ncFunction is a setMark: CANNOT_HANDLE_SET_MARK.
+   2. The ncFunction is a waitForMark: CANNOT_HANDLE_WAIT_FOR_MARK.
+   3. The ncFunction is an indexPallet: CANNOT_HANDLE_INDEX_PALLET.
+   4. The ncFunction is an indexTable: CANNOT_HANDLE_INDEX_TABLE.
    5. handle_tool returns an error code.
    6. handle_unload_tool returns an error code.
 
@@ -4538,16 +4539,16 @@ vertical. Note that the Z coordinate of the location should be negative.
 
 */
 
-static int find_cutting_depths(       /* ARGUMENTS                        */
- double * depth,                      /* Z coord of hole bottom set here  */
- double * depth1,                     /* Z coord of end of start set here */
- double * depth2,                     /* Z coord of start of end set here */
- double flute_length,                 /* flute length of tool             */
- double tip_length,                   /* length of tool tip, may be 0     */
- elementarySurface * depth_plane,     /* plane that is depth of hole      */
- real * overcut,               /* amount to overcut, may be NULL   */
- real * cutting_depth,                /* depth to cut to, may be NULL     */
- drillingTypeStrategy * the_strategy) /* cutting strategy, may be NULL    */
+static int find_cutting_depths(    /* ARGUMENTS                        */
+ double * depth,                   /* Z coord of hole bottom set here  */
+ double * depth1,                  /* Z coord of end of start set here */
+ double * depth2,                  /* Z coord of start of end set here */
+ double flute_length,              /* flute length of tool             */
+ double tip_length,                /* length of tool tip, may be 0     */
+ elementarySurface * depth_plane,  /* plane that is depth of hole      */
+ real * overcut,                   /* amount to overcut, may be NULL   */
+ real * cutting_depth,             /* depth to cut to, may be NULL     */
+ drillingTypeStrategy * strat)     /* cutting strategy, may be NULL    */
 {
   static char name[] = "find_cutting_depths";
   double cutting_val;
@@ -4578,18 +4579,18 @@ static int find_cutting_depths(       /* ARGUMENTS                        */
   CHK(((cutting_val + tip_length) > flute_length),
       HOLE_MUST_NOT_BE_DEEPER_THAN_FLUTE_LENGTH);
   *depth = (top - (cutting_val + tip_length));
-  if (the_strategy)
+  if (strat)
     {
-      if (the_strategy->get_depthOfStart())
+      if (strat->get_depthOfStart())
 	{
-	  start = the_strategy->get_depthOfStart()->get_val();
+	  start = strat->get_depthOfStart()->get_val();
 	  CHK((start >= cutting_val),
 	      START_DEPTH_MUST_BE_LESS_THAN_CUTTING_DEPTH);
 	  *depth1 = (top - (start + tip_length));
 	}
-      if (the_strategy->get_depthOfEnd())
+      if (strat->get_depthOfEnd())
 	{
-	  end = the_strategy->get_depthOfEnd()->get_val();
+	  end = strat->get_depthOfEnd()->get_val();
 	  CHK((end >= cutting_val),
 	      END_DEPTH_MUST_BE_LESS_THAN_CUTTING_DEPTH);
 	  CHK((end <= start), END_DEPTH_MUST_BE_GREATER_THAN_START_DEPTH);
@@ -5407,9 +5408,10 @@ static int follow_compositeCurve_forward( /* ARGUMENTS                       */
     {
       seg = *iter;
       CHK(((seg != segments->back()) &&
-	   (!(seg->get_transition()->isA(continuous_E))) &&
-	   (!(seg->get_transition()->isA(contSameGradient_E))) &&
-	   (!(seg->get_transition()->isA(contSameGradientSameCurvature_E)))),
+	   (!(seg->get_transition()->isA(transitionCodeContinuous_E))) &&
+	   (!(seg->get_transition()->isA(transitionCodeContSameGradient_E))) &&
+	   (!(seg->get_transition()->isA
+	      (transitionCodeContSameGradientSameCurvature_E)))),
 	  COMPOSITE_CURVE_MUST_BE_CONTINUOUS);
       if (seg->get_parentCurve()->isA(boundedCurve_E))
 	{
@@ -5612,10 +5614,10 @@ static int follow_polyline_forward( /* ARGUMENTS                          */
   for (++iter; iter != pts->end(); ++iter)
     {
       aPoint = *iter;
-      if (pathType->isA(trajectoryPath_E))
+      if (pathType->isA(toolpathTypeTrajectoryPath_E))
 	IFF(write_feed(getCartX(aPoint), getCartY(aPoint), getCartZ(aPoint),
 		       code, lines));
-      else if (pathType->isA(connect_E))
+      else if (pathType->isA(toolpathTypeConnect_E))
 	IFF(write_traverse(getCartX(aPoint), getCartY(aPoint), getCartZ(aPoint),
 		       code, lines));
       else
@@ -5709,10 +5711,10 @@ static int follow_trimmedCurve_forward( /* ARGUMENTS                         */
     (trimmed->get_trim2()->get_theList()->front());
   if (basis->isA(line_E))
     {
-      if (pathType->isA(trajectoryPath_E))
+      if (pathType->isA(toolpathTypeTrajectoryPath_E))
 	IFF(write_feed(getCartX(end), getCartY(end), getCartZ(end),
 		       code, lines));
-      else if (pathType->isA(connect_E))
+      else if (pathType->isA(toolpathTypeConnect_E))
 	IFF(write_traverse(getCartX(end), getCartY(end), getCartZ(end),
 			   code, lines));
       else
@@ -5721,7 +5723,7 @@ static int follow_trimmedCurve_forward( /* ARGUMENTS                         */
     }
   else if (basis->isA(circle_E))
     {
-      CHK((!(pathType->isA(trajectoryPath_E))),
+      CHK((!(pathType->isA(toolpathTypeTrajectoryPath_E))),
 	  CAN_HANDLE_ONLY_TRAJECTORYPATH_PATH_TYPE_FOR_CIRCLE);
       IFF(follow_circle_forward(dynamic_cast<circle *>(basis),
 				trimmed->get_senseAgreement(),
@@ -5729,7 +5731,7 @@ static int follow_trimmedCurve_forward( /* ARGUMENTS                         */
     }
   else if (basis->isA(helix_E))
     {
-      CHK((!(pathType->isA(trajectoryPath_E))),
+      CHK((!(pathType->isA(toolpathTypeTrajectoryPath_E))),
 	  CAN_HANDLE_ONLY_TRAJECTORYPATH_PATH_TYPE_FOR_HELIX);
       IFF(follow_helix_forward(dynamic_cast<helix *>(basis),
 			       start, end, code, lines));
@@ -9347,15 +9349,17 @@ static int op_multistep_drilling(   /* ARGUMENTS                         */
   double feat_x;
   double feat_y;
   double feat_z;
-  double retract_z;    // retract z in setup coord_sys
-  double depth;        // tip z coordinate at bottom in setup coord_sys
-  double depth1;       // resettable depth
-  double depth2;       // dummy needed by find_cutting_depths
-  double peck;         // depthOfStep from the_drilling
-  double retract_by;   // retract distance from the_drilling or -1
-  double retract_feed; // feedOnRetract from the_drilling or 1
-  double dwell_time;   // dwell time of step or bottom
-  drillingTypeStrategy strategy;  // needed by find_cutting_depths
+  double retract_z;           // retract z in setup coord_sys
+  double depth;               // tip z coordinate at bottom in setup coord_sys
+  double depth1;              // resettable depth
+  double depth2;              // dummy needed by find_cutting_depths
+  double peck;                // depthOfStep from the_drilling
+  double retract_by;          // retract distance from the_drilling or -1
+  double retract_feed;        // feedOnRetract from the_drilling or 1
+  double dwell_time;          // dwell time of step or bottom
+  drillingTypeStrategy strat; // passes deepness to find_cutting_depths
+  double deepness;            // value of startDepth
+  real startDepth;            // part of strat
 
   feat_x = getPtX(&(_world.feature_place));
   feat_y = getPtY(&(_world.feature_place));
@@ -9369,13 +9373,14 @@ static int op_multistep_drilling(   /* ARGUMENTS                         */
   retract_feed = (the_drilling->get_feedOnRetract() ?
 		  the_drilling->get_feedOnRetract()->get_val() : 1.0);
   retract_by = the_drilling->get_retractDistance();
-  strategy.set_depthOfStart(new real(the_drilling->get_firstDepth()));
-  strategy.set_depthOfEnd(0);
+  deepness = the_drilling->get_firstDepth();
+  startDepth.set_val(deepness);
+  strat.set_depthOfStart(&startDepth);
+  strat.set_depthOfEnd(0);
   IFF(find_cutting_depths(&depth, &depth1, &depth2, flute_length, tip_length,
 			  the_feature->get_depth(),
 			  the_drilling->get_overcutLength(),
-			  the_drilling->get_cuttingDepth(),
-			  &strategy));
+			  the_drilling->get_cuttingDepth(), &strat));
   IFF(find_retract_z(feat_z, the_drilling->get_retractPlane(),
 		     tip_length, &retract_z));
   IFF(start_cut(feat_x, feat_y, retract_z));
@@ -9841,7 +9846,8 @@ static int op_trajectory(         /* ARGUMENTS                   */
   CHK(traj->get_itsSpeed(), CANNOT_HANDLE_SPEED_PROFILE);
   CHK(traj->get_itsToolaxis(), CANNOT_HANDLE_TOOLAXIS);
   pathType = traj->get_itsType();
-  CHK(((!(pathType->isA(connect_E))) && (!(pathType->isA(trajectoryPath_E)))),
+  CHK(((!(pathType->isA(toolpathTypeConnect_E))) &&
+       (!(pathType->isA(toolpathTypeTrajectoryPath_E)))),
       CAN_HANDLE_ONLY_CONNECT_OR_TRAJECTORYPATH_TOOLPATH_TYPE);
   lines = 0;
   first = (*join == 0);
@@ -9933,7 +9939,7 @@ static int op_trajectory_rapid(   /* ARGUMENTS                   */
   double code[ISO14649_CODE_SIZE][7];
   int lines;           // number of lines of code
   int n;               // index for lines of code
-  trajectoryPath pathType;
+  toolpathTypeTrajectoryPath pathType;
 
   CHK(traj->get_itsSpeed(), CANNOT_HANDLE_SPEED_PROFILE);
   CHK(traj->get_itsToolaxis(), CANNOT_HANDLE_TOOLAXIS);
