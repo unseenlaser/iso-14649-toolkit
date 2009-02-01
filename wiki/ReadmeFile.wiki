@@ -1,7 +1,7 @@
-#summary This is the README file from the source.
+#summary This is the README file from the source, revision 3.
 #labels Featured
 == Introduction ==
-This is just the README file from the source, with some markup.
+This is just the README file from the source, with some markup.  *Note that this is from revision 3, so it is somewhat outdated.  Here's the [http://code.google.com/p/iso-14649-toolkit/source/browse/trunk/iso-14649-toolkit/README latest version].*
 
 == OVERVIEW ==
 ----
